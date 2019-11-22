@@ -11,11 +11,7 @@ def main():
 	generate_nodes(data)
 	
 	for node in NODES:
-		print("#-> node:")
-		print(node.type)
-		if node.parent != None:
-			print(node.parent.type)
-		print(node.tainted)
+		node.print_info()
 
 
 def read_program(program_name):
@@ -39,10 +35,20 @@ def generate_nodes(data, parent=None):
 		generate_nodes(data["value"], node)
 
 	elif data_type == "Call":
-		node = call_node(data["func"]["id"],parent)
+		node = call_node(data["func"]["id"], parent)
 		NODES.append(node)
 		for obj in data["args"]:
 			generate_nodes(obj, node)
+
+	elif data_type == "BinOp":
+		node = binop_node(data["op"]["ast_type"], parent)
+		NODES.append(node)
+		generate_nodes(data["left"], node)
+		generate_nodes(data["right"], node)
+
+	elif data_type == "Str":
+		node = srt_node(data["s"], parent)
+		NODES.append(node)
 		
 if __name__== "__main__":
 	main()
