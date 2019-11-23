@@ -112,6 +112,7 @@ def taint_equal_variables(tainted_nodes):
 			if node2.type == "Variable" and node.type == "Variable" and node2.name == node.name:
 				node2.set_taited(True)
 
+
 if __name__== "__main__":
 	main()
 
