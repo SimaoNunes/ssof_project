@@ -9,7 +9,7 @@ def main():
 
 	data  = read_program(sys.argv[1])
 	generate_nodes(data)
-	
+
 	for node in NODES:
 		node.print_info()
 
@@ -20,15 +20,15 @@ def read_program(program_name):
 
 
 def generate_nodes(data, parent=None):
-	
+
 	data_type = data["ast_type"]
 
-	if data_type == "Module":    
-		node = module_node()
+	if data_type == "Module":
+		node = module_node(None)
 		NODES.append(node)
 		for obj in data["body"]:
 			generate_nodes(obj, node)
-	
+
 	elif data_type == "Expr":
 		node = expr_node(parent)
 		NODES.append(node)
@@ -50,7 +50,7 @@ def generate_nodes(data, parent=None):
 		generate_nodes(data["right"], node)
 
 	elif data_type == "Str":
-		node = srt_node(data["s"], parent)
+		node = str_node(data["s"], parent)
 		NODES.append(node)
 
 	elif data_type == "Assign":
@@ -64,7 +64,6 @@ def generate_nodes(data, parent=None):
 		node = var_node(data["id"], data["ctx"]["ast_type"], parent)
 		NODES.append(node)
 
-		
+
 if __name__== "__main__":
 	main()
-
