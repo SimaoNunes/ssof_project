@@ -59,3 +59,25 @@ class srt_node(node):
         print("###############")
         print("Type",self.type,"Parent:",self.parent,"str value:",self.value)
         super().print_info()
+
+class assign_node(node):
+    def __init__(self, parent):
+        node.__init__(self)
+        self.type     = "Assign"
+        self.parent   = parent
+    def print_info(self):
+        print("###############")
+        print("Type",self.type,"Parent:",self.parent)
+        super().print_info()
+
+class var_node(node):
+    def __init__(self, name, ctx, parent):
+        node.__init__(self)
+        self.type     = "Variable"
+        self.name     = name
+        self.ctx      = ctx
+        self.parent   = parent
+    def print_info(self):
+        print("###############")
+        print("Type",self.type,"Parent:",self.parent,"Name:",self.name,"CTX:",self.ctx)
+        super().print_info()

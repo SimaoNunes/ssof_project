@@ -35,7 +35,10 @@ def generate_nodes(data, parent=None):
 		generate_nodes(data["value"], node)
 
 	elif data_type == "Call":
-		node = call_node(data["func"]["id"], parent)
+		if 'id' in data["func"].keys():
+			node = call_node(data["func"]["id"], parent)
+		else:
+			node = call_node(data["func"]["attr"], parent)
 		NODES.append(node)
 		for obj in data["args"]:
 			generate_nodes(obj, node)
@@ -49,6 +52,18 @@ def generate_nodes(data, parent=None):
 	elif data_type == "Str":
 		node = srt_node(data["s"], parent)
 		NODES.append(node)
+
+	elif data_type == "Assign":
+		node = assign_node(parent)
+		NODES.append(node)
+		generate_nodes(data["value"], node)
+		for obj in data["targets"]:
+			generate_nodes(obj, node)
+
+	elif data_type == "Name":
+		node = var_node(data["id"], data["ctx"]["ast_type"], parent)
+		NODES.append(node)
+
 		
 if __name__== "__main__":
 	main()
