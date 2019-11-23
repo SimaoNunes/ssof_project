@@ -44,6 +44,16 @@ class str_node(node):
 ####            Variables            ####
 #########################################
 
+class var_node(node):
+    def __init__(self, name, ctx, parent):
+        node.__init__(self, parent, "variable")
+        self.name = name
+        self.ctx  = ctx
+    def print_info(self):
+        print("###############")
+        print("Type", self.type, "Parent:", self.parent, "Name:", self.name, "CTX:", self.ctx)
+        super().print_info()
+        
 #########################################
 ####           Expressions           ####
 #########################################
@@ -54,18 +64,6 @@ class expr_node(node):
     def print_info(self):
         print("###############")
         print("Type:", self.type, "Parent:", self.parent)
-        super().print_info()
-
-#########################################
-####            Statements           ####
-#########################################
-
-class assign_node(node):
-    def __init__(self, parent):
-        node.__init__(self, parent, "assign")
-    def print_info(self):
-        print("###############")
-        print("Type", self.type, "Parent:", self.parent)
         super().print_info()
 
 class call_node(node):
@@ -86,14 +84,16 @@ class binop_node(node):
         print("Op:", self.op, "Parent:", self.parent)
         super().print_info()
 
-class var_node(node):
-    def __init__(self, name, ctx, parent):
-        node.__init__(self, parent, "variable")
-        self.name = name
-        self.ctx  = ctx
+#########################################
+####            Statements           ####
+#########################################
+
+class assign_node(node):
+    def __init__(self, parent):
+        node.__init__(self, parent, "assign")
     def print_info(self):
         print("###############")
-        print("Type", self.type, "Parent:", self.parent, "Name:", self.name, "CTX:", self.ctx)
+        print("Type", self.type, "Parent:", self.parent)
         super().print_info()
 
 #########################################
