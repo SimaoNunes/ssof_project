@@ -29,6 +29,14 @@ def generate_nodes(data, parent=None):
 		for obj in data["body"]:
 			generate_nodes(obj, node)
 
+	elif data_type == "Str":
+		node = str_node(data["s"], parent)
+		NODES.append(node)
+
+	elif data_type == "Num":
+		node = num_node(parent)
+		NODES.append(node)
+
 	elif data_type == "Expr":
 		node = expr_node(parent)
 		NODES.append(node)
@@ -48,10 +56,6 @@ def generate_nodes(data, parent=None):
 		NODES.append(node)
 		generate_nodes(data["left"], node)
 		generate_nodes(data["right"], node)
-
-	elif data_type == "Str":
-		node = str_node(data["s"], parent)
-		NODES.append(node)
 
 	elif data_type == "Assign":
 		node = assign_node(parent)

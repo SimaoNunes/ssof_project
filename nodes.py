@@ -5,9 +5,9 @@
 class node:
     def __init__(self, parent, type):
         self.type          = type
+        self.parent        = parent
         self.tainted       = False
         self.vulnerability = None
-        self.parent        = parent
     def set_tainted(self, flag):
         self.tainted       = flag
     def set_vulnerability(self, name):
@@ -37,6 +37,12 @@ class str_node(node):
     def print_info(self):
         super().print_info()
         print("str value:", self.value)
+
+class num_node(node):
+    def __init__(self, parent):
+        node.__init__(self, parent, "num")
+    def print_info(self):
+        super().print_info()
 
 #########################################
 ####            Variables            ####
