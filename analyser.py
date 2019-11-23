@@ -10,9 +10,9 @@ def main():
 	data = read_program(sys.argv[1])
 	# visits all AST nodes
 	visit_nodes(data)
-
+	# identify and analyse if tainted variables are compromising slice of code
 	identify_tainted_variables()
-
+	# print AST
 	for node in NODES:
 		node.print_info()
 
@@ -26,12 +26,28 @@ def visit_nodes(data, parent=None):
 
 	data_type = data["ast_type"]
 
+	##### module_node ####
 	if data_type == "Module":
 		node = module_node(None)
 		NODES.append(node)
 		for obj in data["body"]:
 			visit_nodes(obj, node)
 
+	##### Literals ####
+	elif data_type == "Num":
+		node = num_node(parent)
+		NODES.append(node)
+
+	elif data_type == "Str":
+		node = str_node(parent)
+		NODES.append(node)
+
+	#### Variables ####
+	elif data_type == "Name":
+		node = name_node(data["id"], data["ctx"]["ast_type"], parent)
+		NODES.append(node)
+
+	#### Expressions ####
 	elif data_type == "Expr":
 		node = expr_node(parent)
 		NODES.append(node)
@@ -42,7 +58,7 @@ def visit_nodes(data, parent=None):
 			node = call_node(data["func"]["id"], parent)	#FIXME there can be 2 funcs with same name but one is obj.attr and the other is not
 		else:
 			node = call_node(data["func"]["attr"], parent)
-			objNode = var_node(data["func"]["value"]["id"], data["func"]["value"]["ctx"]["ast_type"], parent)
+			objNode = name_node(data["func"]["value"]["id"], data["func"]["value"]["ctx"]["ast_type"], parent)
 			NODES.append(objNode)
 		NODES.append(node)
 		for obj in data["args"]:
@@ -54,10 +70,7 @@ def visit_nodes(data, parent=None):
 		visit_nodes(data["left"], node)
 		visit_nodes(data["right"], node)
 
-	elif data_type == "Str":
-		node = str_node(parent)
-		NODES.append(node)
-
+	#### Statements ####
 	elif data_type == "Assign":
 		node = assign_node(parent)
 		NODES.append(node)
@@ -65,9 +78,7 @@ def visit_nodes(data, parent=None):
 			visit_nodes(obj, node)
 		visit_nodes(data["value"], node)
 
-	elif data_type == "Name":
-		node = var_node(data["id"], data["ctx"]["ast_type"], parent)
-		NODES.append(node)
+	#### Control Flow ####
 
 def identify_tainted_variables():
 	tainted_variables = []

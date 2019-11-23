@@ -30,15 +30,15 @@ class module_node(node):
 ####             Literals            ####
 #########################################
 
-class str_node(node):
-    def __init__(self, parent):
-        node.__init__(self, parent, "Str")
-    def print_info(self):
-        super().print_info()
-
 class num_node(node):
     def __init__(self, parent):
         node.__init__(self, parent, "Num")
+    def print_info(self):
+        super().print_info()
+
+class str_node(node):
+    def __init__(self, parent):
+        node.__init__(self, parent, "Str")
     def print_info(self):
         super().print_info()
 
@@ -46,14 +46,14 @@ class num_node(node):
 ####            Variables            ####
 #########################################
 
-class var_node(node):
-    def __init__(self, name, ctx, parent):
+class name_node(node):
+    def __init__(self, id, ctx, parent):
         node.__init__(self, parent, "Variable")
-        self.name = name
+        self.id = id
         self.ctx  = ctx
     def print_info(self):
         super().print_info()
-        print("Name:", self.name, "\nCTX:", self.ctx)
+        print("Id:", self.id, "\nCTX:", self.ctx)
 
 #########################################
 ####           Expressions           ####
