@@ -1,2 +1,1 @@
-print("Hello" + "World!")
-print("Mekie bro?")
+a = 3

@@ -13,6 +13,7 @@ class module_node(node):
     def __init__(self):
         node.__init__(self)
         self.type     = "module"
+        self.parent = None
     def print_info(self):
         print("###############")
         print("Type:",self.type)
@@ -25,7 +26,7 @@ class expr_node(node):
         self.parent   = parent
     def print_info(self):
         print("###############")
-        print("Type:",self.type,"Parent:",self.parent)
+        print("Type:",self.type,"Parent:",self.parent.type)
         super().print_info()
 
 class call_node(node):
@@ -36,17 +37,18 @@ class call_node(node):
         self.name     = name
     def print_info(self):
         print("###############")
-        print("Type",self.type,"Parent:",self.parent,"Func name:",self.name)
+        print("Type",self.type,"Parent:",self.parent.type,"Func name:",self.name)
         super().print_info()
 
 class binop_node(node):
     def __init__(self, op, parent):
         node.__init__(self)
+        self.type = "binop"
         self.op       = op
         self.parent   = parent
     def print_info(self):
         print("###############")
-        print("Op:",self.op,"Parent:",self.parent)
+        print("Op:",self.op,"Parent:",self.parent.type)
         super().print_info()
 
 class srt_node(node):
@@ -57,7 +59,7 @@ class srt_node(node):
         self.value    = value
     def print_info(self):
         print("###############")
-        print("Type",self.type,"Parent:",self.parent,"str value:",self.value)
+        print("Type",self.type,"Parent:",self.parent.type,"str value:",self.value)
         super().print_info()
 
 class assign_node(node):
@@ -67,7 +69,7 @@ class assign_node(node):
         self.parent   = parent
     def print_info(self):
         print("###############")
-        print("Type",self.type,"Parent:",self.parent)
+        print("Type",self.type,"Parent:",self.parent.type)
         super().print_info()
 
 class var_node(node):
@@ -79,5 +81,5 @@ class var_node(node):
         self.parent   = parent
     def print_info(self):
         print("###############")
-        print("Type",self.type,"Parent:",self.parent,"Name:",self.name,"CTX:",self.ctx)
+        print("Type",self.type,"Parent:",self.parent.type,"Name:",self.name,"CTX:",self.ctx)
         super().print_info()
