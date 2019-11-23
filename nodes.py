@@ -34,7 +34,7 @@ class module_node(node):
 class str_node(node):
     def __init__(self, value, parent):
         node.__init__(self, parent, "str")
-        self.value    = value
+        self.value = value
     def print_info(self):
         print("###############")
         print("Type", self.type, "Parent:", self.parent, "str value:", self.value)
@@ -71,7 +71,7 @@ class assign_node(node):
 class call_node(node):
     def __init__(self, name, parent):
         node.__init__(self, parent, "call")
-        self.name     = name
+        self.name = name
     def print_info(self):
         print("###############")
         print("Type", self.type, "Parent:", self.parent, "Func name:", self.name)
@@ -80,7 +80,7 @@ class call_node(node):
 class binop_node(node):
     def __init__(self, op, parent):
         node.__init__(self, parent, "binop")
-        self.op       = op
+        self.op = op
     def print_info(self):
         print("###############")
         print("Op:", self.op, "Parent:", self.parent)
@@ -89,8 +89,8 @@ class binop_node(node):
 class var_node(node):
     def __init__(self, name, ctx, parent):
         node.__init__(self, parent, "variable")
-        self.name     = name
-        self.ctx      = ctx
+        self.name = name
+        self.ctx  = ctx
     def print_info(self):
         print("###############")
         print("Type", self.type, "Parent:", self.parent, "Name:", self.name, "CTX:", self.ctx)
