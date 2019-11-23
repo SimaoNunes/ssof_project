@@ -4,6 +4,7 @@ import pprint
 from nodes import *
 
 NODES = []
+VARIABLES = []
 
 def main():
 	# read json object of an AST of python code
@@ -55,7 +56,7 @@ def visit_nodes(data, parent=None):
 
 	elif data_type == "Call":
 		if 'id' in data["func"].keys():
-			node = call_node(data["func"]["id"], parent)	#FIXME there can be 2 funcs with same name but one is obj.attr and the other is not
+			node = call_node(data["func"]["id"], parent)	#WARNING there can be 2 funcs with same name but one is obj.attr and the other is not
 		else:
 			node = call_node(data["func"]["attr"], parent)
 			objNode = name_node(data["func"]["value"]["id"], data["func"]["value"]["ctx"]["ast_type"], parent)
@@ -84,17 +85,17 @@ def identify_tainted_variables():
 	tainted_variables = []
 	for i, node in enumerate(NODES):
 		if node.type == "Variable":
-			var_name = node.name
+			var_name = node.id
 			if node.ctx == "Load":
 				tainted = True
 				tainted_variables.append(node)
 				if i > 0:
 					for j in range(i-1):
-						if NODES[j].type == "Variable" and NODES[j].name == var_name and NODES[j].ctx == "Store":
+						if NODES[j].type == "Variable" and NODES[j].id == var_name and NODES[j].ctx == "Store":
 							tainted = False
 							tainted_variables.pop()
 							break
-				node.tainted = tainted
+				node.set_tainted(tainted)
 
 	tainted_nodes = tainted_variables.copy()
 	for node in tainted_variables:
@@ -104,7 +105,6 @@ def identify_tainted_variables():
 			node.parent.tainted = True
 			tainted_nodes.append(node.parent)
 			node = node.parent
-
 
 	taint_equal_variables(tainted_nodes)
 
@@ -117,7 +117,7 @@ def taint_assign_target(assign_node, tainted_nodes):
 def taint_equal_variables(tainted_nodes):
 	for node in tainted_nodes:
 		for node2 in NODES:
-			if node2.type == "Variable" and node.type == "Variable" and node2.name == node.name:
+			if node2.type == "Variable" and node.type == "Variable" and node2.id == node.id:
 				node2.set_tainted(True)
 
 
