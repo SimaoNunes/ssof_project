@@ -1,85 +1,102 @@
+#########################################
+####        General node class       ####
+#########################################
+
 class node:
-    def __init__(self):
+    def __init__(self, parent, type):
+        self.type          = type
+        self.parent        = parent
         self.tainted       = False
         self.vulnerability = None
-    def set_taited(self, flag):
+    def set_tainted(self, flag):
         self.tainted       = flag
     def set_vulnerability(self, name):
         self.vulnerability = name
     def print_info(self):
-        print("Tainted:",self.tainted,"Vulnerability:",self.vulnerability)
+        print("################################")
+        print("Type:", self.type, "\nParent:", self.parent,"\nTainted:", self.tainted, "\nVulnerability:", self.vulnerability)
+
+#########################################
+#### module_node (program root node) ####
+#########################################
 
 class module_node(node):
-    def __init__(self):
-        node.__init__(self)
-        self.type     = "module"
-        self.parent = None
+    def __init__(self, parent):
+        node.__init__(self, parent, "Module")
     def print_info(self):
-        print("###############")
-        print("Type:",self.type)
         super().print_info()
+
+#########################################
+####             Literals            ####
+#########################################
+
+class str_node(node):
+    def __init__(self, parent):
+        node.__init__(self, parent, "Str")
+    def print_info(self):
+        super().print_info()
+
+class num_node(node):
+    def __init__(self, parent):
+        node.__init__(self, parent, "Num")
+    def print_info(self):
+        super().print_info()
+
+#########################################
+####            Variables            ####
+#########################################
+
+class var_node(node):
+    def __init__(self, name, ctx, parent):
+        node.__init__(self, parent, "Variable")
+        self.name = name
+        self.ctx  = ctx
+    def print_info(self):
+        super().print_info()
+        print("Name:", self.name, "\nCTX:", self.ctx)
+
+#########################################
+####           Expressions           ####
+#########################################
 
 class expr_node(node):
     def __init__(self, parent):
-        node.__init__(self)
-        self.type     = "expr"
-        self.parent   = parent
+        node.__init__(self, parent, "Expr")
     def print_info(self):
-        print("###############")
-        print("Type:",self.type,"Parent:",self.parent.type)
         super().print_info()
 
 class call_node(node):
     def __init__(self, name, parent):
-        node.__init__(self)
-        self.type     = "call"
-        self.parent   = parent
-        self.name     = name
+        node.__init__(self, parent, "Call")
+        self.name = name
     def print_info(self):
-        print("###############")
-        print("Type",self.type,"Parent:",self.parent.type,"Func name:",self.name)
         super().print_info()
+        print("Func name:", self.name)
 
 class binop_node(node):
     def __init__(self, op, parent):
-        node.__init__(self)
-        self.type = "binop"
-        self.op       = op
-        self.parent   = parent
+        node.__init__(self, parent, "Binop")
+        self.op = op
     def print_info(self):
-        print("###############")
-        print("Op:",self.op,"Parent:",self.parent.type)
         super().print_info()
+        print("Op:", self.op)
 
-class srt_node(node):
-    def __init__(self, value, parent):
-        node.__init__(self)
-        self.type     = "str"
-        self.parent   = parent
-        self.value    = value
-    def print_info(self):
-        print("###############")
-        print("Type",self.type,"Parent:",self.parent.type,"str value:",self.value)
-        super().print_info()
+#########################################
+####            Statements           ####
+#########################################
 
 class assign_node(node):
     def __init__(self, parent):
-        node.__init__(self)
-        self.type     = "Assign"
-        self.parent   = parent
+        node.__init__(self, parent, "Assign")
     def print_info(self):
-        print("###############")
-        print("Type",self.type,"Parent:",self.parent.type)
         super().print_info()
 
-class var_node(node):
-    def __init__(self, name, ctx, parent):
-        node.__init__(self)
-        self.type     = "Variable"
-        self.name     = name
-        self.ctx      = ctx
-        self.parent   = parent
-    def print_info(self):
-        print("###############")
-        print("Type",self.type,"Parent:",self.parent.type,"Name:",self.name,"CTX:",self.ctx)
-        super().print_info()
+#########################################
+####           Control Flow          ####
+#########################################
+
+class if_node(node):
+    pass
+
+class while_node(node):
+    pass
