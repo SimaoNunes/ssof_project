@@ -4,6 +4,7 @@ import pprint
 from nodes import *
 
 VARIABLES = {}
+SOURCES = []
 PATTERNS = []
 
 def read_program(program_name):
@@ -44,15 +45,19 @@ def propagate_flow(node):
         for arg in node["args"]:
             if(propagate_flow(arg)):
                 tainted = True
-        if('id' in node["func"].keys()):
-            pass
-        elif('attr' in node["func"].keys() and tainted and node["func"]["attr"] == "execute"):
-            print("ALERT THERE'S A VULNERABILITY")
+        if tainted:
+            if('id' in node["func"].keys()):
+                search_sanitizer_sink(node["func"]["id"])
+            elif('attr' in node["func"].keys()):
+                search_sanitizer_sink(node["func"]["attr"])
+                print("ALERT THERE'S A VULNERABILITY")
         return tainted
     # Flow information through a Name node
     elif node["ast_type"] == "Name":
         if(node["id"] not in VARIABLES.keys() and node["ctx"]["ast_type"] == "Load"):
             VARIABLES[node["id"]] = True
+            # Uninstantiazes variable - Create possible vulnerability for variable
+            create_source_vulnerability(node["id"])
             return True
         else:
             return VARIABLES[node["id"]]
@@ -64,7 +69,38 @@ def propagate_flow(node):
     elif node["ast_type"] == "Str":
         return False
 
+# Funtion that checks if a given function is a sanitizer or a sink
+def search_sanitizer_sink(function_name):
+    for vuln in PATTERNS:
+        if function_name in vuln['sanitizers']:
+            add_sanitizer_sink_('sanitizer', vuln['vulnerability'], function_name)
+        elif function_name in vuln['sinks']:
+            add_sanitizer_sink_('sink', vuln['vulnerability'], function_name)
 
+# Function that adds a sanitizer or sink to a source
+def add_sanitizer_sink_(element, vulnerability, function_name):
+    for source in SOURCES:
+        if source['vulnerability'] == vulnerability:
+            if element == 'sanitizer':
+                source['sanitizer'] = function_name
+            else:
+                source['sink'] = function_name
+            
+# Function that adds uninstatied variables to SOURCE list with all the vulnerbailities in patterns
+def create_source_vulnerability(variable):
+    for vuln in PATTERNS:
+        dic = {}
+        dic['vulnerability'] = vuln['vulnerability']
+        dic['source'] = variable
+        dic['sink'] = ""
+        dic['sanitizer'] = ""
+        SOURCES.append(dic)
+
+# Prints the expected output. Only sources with sinks have a vulnerability
+def printJSONOutput():
+    for source in SOURCES:
+        if source['sink'] != '':
+            print(source)
 
 
 def main():
@@ -77,6 +113,11 @@ def main():
     # check how information flows in code
     for obj in ast["body"]:
         propagate_flow(obj)
+
+    printJSONOutput()
+
+    #print(VARIABLES)
+    #print(SOURCES)
 
 if __name__== "__main__":
 	main()
