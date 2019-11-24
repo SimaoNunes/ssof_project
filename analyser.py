@@ -4,18 +4,53 @@ import pprint
 from nodes import *
 
 NODES = []
-VARIABLES = []
+STORED_VARIABLES = []
+PATTERNS = []
 
 def main():
 	# read json object of an AST of python code
 	data = read_program(sys.argv[1])
+
+	patterns = read_program(sys.argv[2])
 	# visits all AST nodes
 	visit_nodes(data)
+	process_patterns(patterns)
+	process_child_nodes(NODES)
 	# identify and analyse if tainted variables are compromising slice of code
-	identify_tainted_variables()
+	#identify_tainted_variables()
 	# print AST
 	for node in NODES:
 		node.print_info()
+	#print(PATTERNS)
+
+
+def update_patterns_vuln(vulnerability, i):
+	patterns_types = ['sources', 'sanitizers', 'sinks']
+	for pattern_type in patterns_types:
+		for element in vulnerability[pattern_type]:
+			if element not in PATTERNS[i][pattern_type]:
+				PATTERNS[i][pattern_type].append(element)
+
+
+def process_patterns(patterns):
+	for vulnerability in patterns:
+		present_vuln = ""
+		index = 0
+		for i, vuln in enumerate(PATTERNS):
+			if vulnerability['vulnerability'] in vuln['vulnerability']:
+				present_vuln = vulnerability['vulnerability']
+				index = i
+				break
+		if present_vuln == "":
+			PATTERNS.append(vulnerability)
+		else:
+			update_patterns_vuln(vulnerability, i)
+
+	
+def process_child_nodes(nodes):
+	for node in nodes:
+		if node.parent != None:
+			node.parent.child.append(node)
 
 
 def read_program(program_name):
@@ -46,6 +81,10 @@ def visit_nodes(data, parent=None):
 	#### Variables ####
 	elif data_type == "Name":
 		node = name_node(data["id"], data["ctx"]["ast_type"], parent)
+		if node.ctx == "Load" and node.id not in STORED_VARIABLES:
+			node.tainted = True
+		elif node.ctx == "Store" and node.id not in STORED_VARIABLES:
+			STORED_VARIABLES.append(node.id)
 		NODES.append(node)
 
 	#### Expressions ####
@@ -61,6 +100,9 @@ def visit_nodes(data, parent=None):
 			node = call_node(data["func"]["attr"], parent)
 			objNode = name_node(data["func"]["value"]["id"], data["func"]["value"]["ctx"]["ast_type"], parent)
 			NODES.append(objNode)
+		
+		possible_source_sink(node) #Check if name of the function is a source or sink in patterns
+
 		NODES.append(node)
 		for obj in data["args"]:
 			visit_nodes(obj, node)
@@ -81,6 +123,13 @@ def visit_nodes(data, parent=None):
 
 	#### Control Flow ####
 
+def possible_source_sink(node):
+	function_name = node.name
+	for vuln in PATTERNS:
+		if function_name in vuln['sources']:
+			node.tainted = true
+
+'''
 def identify_tainted_variables():
 	tainted_variables = []
 	for i, node in enumerate(NODES):
@@ -119,7 +168,7 @@ def taint_equal_variables(tainted_nodes):
 		for node2 in NODES:
 			if node2.type == "Variable" and node.type == "Variable" and node2.id == node.id:
 				node2.set_tainted(True)
-
+'''
 
 if __name__== "__main__":
 	main()

@@ -6,6 +6,7 @@ class node:
     def __init__(self, parent, type):
         self.type          = type
         self.parent        = parent
+        self.child         = []
         self.tainted       = False
         self.vulnerability = None
     def set_tainted(self, flag):
@@ -14,7 +15,7 @@ class node:
         self.vulnerability = name
     def print_info(self):
         print("################################")
-        print("Type:", self.type, "\nParent:", self.parent,"\nTainted:", self.tainted, "\nVulnerability:", self.vulnerability)
+        print("Type:", self.type, "\nParent:", self.parent,"\nChild:", self.child,"\nTainted:", self.tainted, "\nVulnerability:", self.vulnerability)
 
 #########################################
 #### module_node (program root node) ####
