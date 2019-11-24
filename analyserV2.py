@@ -36,7 +36,7 @@ def propagate_flow(node):
     # Flow information through an Assign node
     if node["ast_type"] == "Assign":
         tainted = propagate_flow(node["value"])
-        for target in node["target"]:
+        for target in node["targets"]:
             VARIABLES[target["id"]] = tainted
     # Flow information through a Call node
     elif node["ast_type"] == "Call":
@@ -44,7 +44,9 @@ def propagate_flow(node):
         for arg in node["args"]:
             if(propagate_flow(arg)):
                 tainted = True
-        if(tainted and node["func"]["attr"] == "execute")
+        if('id' in node["func"].keys()):
+            pass
+        elif('attr' in node["func"].keys() and tainted and node["func"]["attr"] == "execute"):
             print("ALERT THERE'S A VULNERABILITY")
         return tainted
     # Flow information through a Name node
@@ -56,7 +58,7 @@ def propagate_flow(node):
             return VARIABLES[node["id"]]
     # Flow information through a BinOp node
     elif node["ast_type"] == "BinOp":
-        tainted = propagate_flow(node["left"]) || propagate_flow(node["right"])
+        tainted = propagate_flow(node["left"]) or propagate_flow(node["right"])
         return tainted
     # Flwo information through a String node
     elif node["ast_type"] == "Str":
