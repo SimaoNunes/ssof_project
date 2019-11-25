@@ -42,15 +42,15 @@ def propagate_flow(node):
     # Flow information through a Call node
     elif node["ast_type"] == "Call":
         tainted = False
+        func_name = get_function_name(node["func"])
+        if verify_function_source(func_name):
+            tainted = True
         for arg in node["args"]:
             if(propagate_flow(arg)):
                 tainted = True
         if tainted:
-            if('id' in node["func"].keys()):
-                search_sanitizer_sink(node["func"]["id"])
-            elif('attr' in node["func"].keys()):
-                search_sanitizer_sink(node["func"]["attr"])
-                print("ALERT THERE'S A VULNERABILITY")
+            search_sanitizer_sink(func_name)
+            print("ALERT THERE'S A VULNERABILITY")
         return tainted
     # Flow information through a Name node
     elif node["ast_type"] == "Name":
@@ -68,6 +68,27 @@ def propagate_flow(node):
     # Flwo information through a String node
     elif node["ast_type"] == "Str":
         return False
+
+# Funtion that returns the name of a function node depending on its structure
+def get_function_name(func_node):
+    if('id' in func_node.keys()):
+        return func_node["id"]
+    elif('attr' in func_node.keys()):
+        return func_node["attr"]
+
+# Funtion that verify if a function is a source
+def verify_function_source(function_name):
+    is_source = False
+    for vuln in PATTERNS:
+        if function_name in vuln['sources']:
+            is_source = True
+            dic = {}
+            dic['vulnerability'] = vuln['vulnerability']
+            dic['source'] = function_name
+            dic['sink'] = ""
+            dic['sanitizer'] = ""
+            SOURCES.append(dic)
+    return is_source
 
 # Funtion that checks if a given function is a sanitizer or a sink
 def search_sanitizer_sink(function_name):
