@@ -4,7 +4,7 @@ import pprint
 from nodes import *
 
 VARIABLES = {}
-SOURCES = []
+VULNERABILITIES = []
 PATTERNS = []
 
 # reads json object from file
@@ -53,7 +53,7 @@ def verify_if_function_is_source(function_name):
             dic['source'] = function_name
             dic['sink'] = ""
             dic['sanitizer'] = ""
-            SOURCES.append(dic)
+            VULNERABILITIES.append(dic)
     return is_source
 
 # check if a given function is a sanitizer or a sink
@@ -66,14 +66,14 @@ def search_sanitizer_sink(function_name):
 
 # add a sanitizer or sink to a source
 def add_sanitizer_sink(element, vulnerability, function_name):
-    for source in SOURCES:
+    for source in VULNERABILITIES:
         if source['vulnerability'] == vulnerability:
             if element == 'sanitizer':
                 source['sanitizer'] = function_name
             else:
                 source['sink'] = function_name
 
-# add uninstatied variables to SOURCE list with all the vulnerbailities in patterns
+# add uninstatied variables to source list with all the vulnerabilities in patterns
 def create_source_vulnerability(variable):
     for vuln in PATTERNS:
         dic = {}
@@ -81,13 +81,13 @@ def create_source_vulnerability(variable):
         dic['source'] = variable
         dic['sink'] = ""
         dic['sanitizer'] = ""
-        SOURCES.append(dic)
+        VULNERABILITIES.append(dic)
 
-# Prints the expected output. Only sources with sinks have a vulnerability
+# print the expected output. Only sources with sinks have a vulnerability
 def printJSONOutput():
-    for source in SOURCES:
-        if source['sink'] != '':
-            print(source)
+    for vulnerability in VULNERABILITIES:
+        if vulnerability['sink'] != '':
+            print(vulnerability)
 
 # propagates information on a given node of the ast
 def propagate_flow(node):
@@ -141,7 +141,7 @@ def main():
     printJSONOutput()
 
     #print(VARIABLES)
-    #print(SOURCES)
+    #print(VULNERABILITIES)
 
 
 if __name__== "__main__":
