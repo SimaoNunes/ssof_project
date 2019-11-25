@@ -13,7 +13,7 @@ def read_program(program_name):
 		return json.loads(data_file.read())
 
 # merge patterns with same vulnerability
-def update_patterns_vuln(vulnerability, i):
+def merge_patterns_vuln(vulnerability, i):
 	patterns_types = ['sources', 'sanitizers', 'sinks']
 	for pattern_type in patterns_types:
 		for element in vulnerability[pattern_type]:
@@ -33,7 +33,7 @@ def check_duplicate_vulnerabilities(patterns):
 		if present_vuln == "":
 			PATTERNS.append(vulnerability)
 		else:
-			update_patterns_vuln(vulnerability, i)
+			merge_patterns_vuln(vulnerability, i)
 
 # propagates information on a given node of the ast
 def propagate_flow(node):
@@ -97,19 +97,19 @@ def verify_function_source(function_name):
 def search_sanitizer_sink(function_name):
     for vuln in PATTERNS:
         if function_name in vuln['sanitizers']:
-            add_sanitizer_sink_('sanitizer', vuln['vulnerability'], function_name)
+            add_sanitizer_sink('sanitizer', vuln['vulnerability'], function_name)
         elif function_name in vuln['sinks']:
-            add_sanitizer_sink_('sink', vuln['vulnerability'], function_name)
+            add_sanitizer_sink('sink', vuln['vulnerability'], function_name)
 
 # Function that adds a sanitizer or sink to a source
-def add_sanitizer_sink_(element, vulnerability, function_name):
+def add_sanitizer_sink(element, vulnerability, function_name):
     for source in SOURCES:
         if source['vulnerability'] == vulnerability:
             if element == 'sanitizer':
                 source['sanitizer'] = function_name
             else:
                 source['sink'] = function_name
-            
+
 # Function that adds uninstatied variables to SOURCE list with all the vulnerbailities in patterns
 def create_source_vulnerability(variable):
     for vuln in PATTERNS:
