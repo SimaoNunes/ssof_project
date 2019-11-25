@@ -9,29 +9,29 @@ PATTERNS = []
 
 # reads json object from file
 def read_program(program_name):
-	with open(program_name, 'rb') as data_file:
-		return json.loads(data_file.read())
+    with open(program_name, 'rb') as data_file:
+        return json.loads(data_file.read())
 
 # merge patterns with same vulnerability
 def merge_patterns_vuln(vulnerability, i):
-	patterns_types = ['sources', 'sanitizers', 'sinks']
-	for pattern_type in patterns_types:
-		for element in vulnerability[pattern_type]:
-			if element not in PATTERNS[i][pattern_type]:
-				PATTERNS[i][pattern_type].append(element)
+    patterns_types = ['sources', 'sanitizers', 'sinks']
+    for pattern_type in patterns_types:
+        for element in vulnerability[pattern_type]:
+            if element not in PATTERNS[i][pattern_type]:
+                PATTERNS[i][pattern_type].append(element)
 
 # get input patterns while checking if they have duplicate vulnerabilities and merge them
 def process_patterns(patterns):
-	for vulnerability in patterns:
-		present_vuln = ""
-		for i, vuln in enumerate(PATTERNS):
-			if vulnerability['vulnerability'] in vuln['vulnerability']:
-				present_vuln = vulnerability['vulnerability']
-				break
-		if present_vuln == "":
-			PATTERNS.append(vulnerability)
-		else:
-			merge_patterns_vuln(vulnerability, i)
+    for vulnerability in patterns:
+        present_vuln = ""
+        for i, vuln in enumerate(PATTERNS):
+            if vulnerability['vulnerability'] in vuln['vulnerability']:
+                present_vuln = vulnerability['vulnerability']
+                break
+        if present_vuln == "":
+            PATTERNS.append(vulnerability)
+        else:
+            merge_patterns_vuln(vulnerability, i)
 
 # return the name of a function node depending on its structure
 def get_function_name(func_node):
@@ -64,13 +64,13 @@ def search_sanitizer_sink(function_name):
 
 # add a sanitizer or sink to a source
 def add_sanitizer_sink(element, vulnerability, function_name):
-	for source in VULNERABILITIES:
-		if source['vulnerability'] == vulnerability:
-			if element == 'sanitizer':
-				source['sanitizer'] = function_name
-			else:
-				print("ALERT THERE'S A VULNERABILITY")
-				source['sink'] = function_name
+    for source in VULNERABILITIES:
+        if source['vulnerability'] == vulnerability:
+            if element == 'sanitizer':
+                source['sanitizer'] = function_name
+            else:
+                print("ALERT THERE'S A VULNERABILITY")
+                source['sink'] = function_name
 
 # add uninstatied variables to source list with all the vulnerabilities in patterns
 def create_source_vulnerability(variable):
@@ -91,61 +91,64 @@ def printJSONOutput():
 # propagates information on a given node of the ast
 def propagate_flow(node):
     # Flow information through an Assign node
-	if node["ast_type"] == "Assign":
-		tainted = propagate_flow(node["value"])
-		for target in node["targets"]:
-			VARIABLES[target["id"]] = tainted
+    if node["ast_type"] == "Assign":
+        tainted = propagate_flow(node["value"])
+        for target in node["targets"]:
+            VARIABLES[target["id"]] = tainted
     # Flow information through a Call node
-	elif node["ast_type"] == "Call":
-		tainted = False
-		func_name = get_function_name(node["func"])		#WARNING what about 2 functions with same name? One is function the other is attribute
-		if is_function_source(func_name):				#FIXME If function is source there's no need to propagate flow on args, problably ??
-			tainted = True
-		for arg in node["args"]:
-			if propagate_flow(arg):
-				tainted = True
-		if tainted:
-			search_sanitizer_sink(func_name)
-		return tainted
+    elif node["ast_type"] == "Call":
+        tainted = False
+        func_name = get_function_name(node["func"])		#WARNING what about 2 functions with same name? One is function the other is attribute
+        if is_function_source(func_name):				#FIXME If function is source there's no need to propagate flow on args, problably ??
+            tainted = True
+        for arg in node["args"]:
+            if propagate_flow(arg):
+                tainted = True
+        if tainted:
+            search_sanitizer_sink(func_name)
+        return tainted
     # Flow information through a Name node
-	elif node["ast_type"] == "Name":
-		if node["id"] not in VARIABLES.keys() and node["ctx"]["ast_type"] == "Load":
-			VARIABLES[node["id"]] = True
+    elif node["ast_type"] == "Name":
+        if node["id"] not in VARIABLES.keys() and node["ctx"]["ast_type"] == "Load":
+            VARIABLES[node["id"]] = True
             # Uninstantiazes variable - Create possible vulnerability for variable
-			create_source_vulnerability(node["id"])
-			return True
-		else:
-			return VARIABLES[node["id"]]
+            create_source_vulnerability(node["id"])
+            return True
+        else:
+            return VARIABLES[node["id"]]
     # Flow information through a Binary Operation node
-	elif node["ast_type"] == "BinOp":
-		tainted = propagate_flow(node["left"]) or propagate_flow(node["right"])
-		return tainted
+    elif node["ast_type"] == "BinOp":
+        tainted = propagate_flow(node["left"]) or propagate_flow(node["right"])
+        return tainted
     # Flow information through a String node
-	elif node["ast_type"] == "Str":
-		return False
-	# Flow information through a Number node
-	elif node["ast_type"] == "Num":
-		return False
+    elif node["ast_type"] == "Str":
+        return False
+    # Flow information through a Number node
+    elif node["ast_type"] == "Num":
+        return False
+    # Flow information through a Number node
+    elif node["ast_type"] == "Expr":
+        return propagate_flow(node["value"])
 
 
 # main function
 def main():
-	# read json object of an AST of python code
-	ast = read_program(sys.argv[1])
-	# read json object of patterns to identify vulnerabilities
-	patterns = read_program(sys.argv[2])
-	# check if in given pattern input there are 2 different patterns for the same vulnerability
-	process_patterns(patterns)
+    # read json object of an AST of python code
+    ast = read_program(sys.argv[1])
+    # read json object of patterns to identify vulnerabilities
+    patterns = read_program(sys.argv[2])
+    # check if in given pattern input there are 2 different patterns for the same vulnerability
+    process_patterns(patterns)
     # check how information flows in code
-	for obj in ast["body"]:
-		propagate_flow(obj)
-		print(VARIABLES)
-	# print output
-	printJSONOutput()
+    for obj in ast["body"]:
+        propagate_flow(obj)
+        print(VARIABLES)
+    # print output
+    printJSONOutput()
 
     #print(VARIABLES)
     #print(VULNERABILITIES)
 
 
 if __name__== "__main__":
-	main()
+    main()
