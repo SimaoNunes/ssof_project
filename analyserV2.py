@@ -24,11 +24,9 @@ def merge_patterns_vuln(vulnerability, i):
 def check_duplicate_vulnerabilities(patterns):
 	for vulnerability in patterns:
 		present_vuln = ""
-		index = 0
 		for i, vuln in enumerate(PATTERNS):
 			if vulnerability['vulnerability'] in vuln['vulnerability']:
 				present_vuln = vulnerability['vulnerability']
-				index = i
 				break
 		if present_vuln == "":
 			PATTERNS.append(vulnerability)
@@ -128,17 +126,19 @@ def propagate_flow(node):
 
 # main function
 def main():
-    # read json object of an AST of python code
-    ast = read_program(sys.argv[1])
-    # read json object of patterns to identify vulnerabilities
-    patterns = read_program(sys.argv[2])
-    # check if in given pattern input there are 2 different patterns for the same vulnerability
-    check_duplicate_vulnerabilities(patterns)
+	# read json object of an AST of python code
+	ast = read_program(sys.argv[1])
+	# read json object of patterns to identify vulnerabilities
+	patterns = read_program(sys.argv[2])
+	# check if in given pattern input there are 2 different patterns for the same vulnerability
+	pprint.pprint(patterns)
+	check_duplicate_vulnerabilities(patterns)
+	pprint.pprint(PATTERNS)
     # check how information flows in code
-    for obj in ast["body"]:
-        propagate_flow(obj)
+	for obj in ast["body"]:
+		propagate_flow(obj)
 	# print output
-    printJSONOutput()
+	printJSONOutput()
 
     #print(VARIABLES)
     #print(VULNERABILITIES)
