@@ -5,6 +5,7 @@ from nodes import *
 
 VARIABLES = {}
 VULNERABILITIES = []
+SOURCES = {}
 PATTERNS = []
 
 # reads json object from file
@@ -32,6 +33,8 @@ def process_patterns(patterns):
             PATTERNS.append(vulnerability)
         else:
             merge_patterns_vuln(vulnerability, i)
+    for vulnerability in PATTERNS:
+        SOURCES[vulnerability["vulnerability"]] = []
 
 # return the name of a function node depending on its structure
 def get_function_name(func_node):
@@ -40,53 +43,45 @@ def get_function_name(func_node):
     elif('attr' in func_node.keys()):
         return func_node["attr"]
 
+# check if a given function is a sanitizer or a sink
+def check_if_sanitizer_or_sink(function_name):
+    for vuln in PATTERNS:
+        if function_name in vuln['sanitizers']:
+            add_sanitizer_or_sink('sanitizer', vuln['vulnerability'], function_name)
+        elif function_name in vuln['sinks']:
+            add_sanitizer_or_sink('sink', vuln['vulnerability'], function_name)
+
+# add a sanitizer or sink to a source
+def add_sanitizer_or_sink(element, vulnerability, function_name):
+        dic = {}
+        dic['vulnerability'] = vulnerability
+        dic['source'] = SOURCES[vulnerability][0] #FIXME THIS IS PUTTING ALL SOURCES TO VULN! WE MUST FOLLOW THE FLOW FROM A GIVEN SOURCE
+        if element == 'sanitizer':
+            dic['sanitizer'] = function_name
+            dic['sink'] = ""
+        else:
+            dic['sanitizer'] = ""
+            dic['sink'] = function_name
+        VULNERABILITIES.append(dic)
+
+# add uninstatiated variables to all sources list
+def add_to_sources(variable):
+    for vuln in PATTERNS:
+        SOURCES[vuln["vulnerability"]].append(variable)         #WARNING! IF VARIABLE HAS FUNCTION NAME THERE'S A BUGGGGG
+
 # verify if a function is a source
 def is_function_source(function_name):
     is_source = False
     for vuln in PATTERNS:
         if function_name in vuln['sources']:
             is_source = True
-            dic = {}
-            dic['vulnerability'] = vuln['vulnerability']
-            dic['source'] = function_name
-            dic['sink'] = ""
-            dic['sanitizer'] = ""
-            VULNERABILITIES.append(dic)
+            SOURCES[vuln["vulnerability"]].append(function_name)        #WARNING! IF VARIABLE HAS FUNCTION NAME THERE'S A BUGGGGG
     return is_source
 
-# check if a given function is a sanitizer or a sink
-def search_sanitizer_sink(function_name):
-    for vuln in PATTERNS:
-        if function_name in vuln['sanitizers']:
-            add_sanitizer_sink('sanitizer', vuln['vulnerability'], function_name)
-        elif function_name in vuln['sinks']:
-            add_sanitizer_sink('sink', vuln['vulnerability'], function_name)
-
-# add a sanitizer or sink to a source
-def add_sanitizer_sink(element, vulnerability, function_name):
-    for source in VULNERABILITIES:
-        if source['vulnerability'] == vulnerability:
-            if element == 'sanitizer':
-                source['sanitizer'] = function_name
-            else:
-                print("ALERT THERE'S A VULNERABILITY")
-                source['sink'] = function_name
-
-# add uninstatied variables to source list with all the vulnerabilities in patterns
-def create_source_vulnerability(variable):
-    for vuln in PATTERNS:
-        dic = {}
-        dic['vulnerability'] = vuln['vulnerability']
-        dic['source'] = variable
-        dic['sink'] = ""
-        dic['sanitizer'] = ""
-        VULNERABILITIES.append(dic)
-
 # print the expected output. Only sources with sinks have a vulnerability
-def printJSONOutput():
+def printVulnerabilities():
     for vulnerability in VULNERABILITIES:
-        if vulnerability['sink'] != '':
-            print(vulnerability)
+        print(vulnerability)
 
 # propagates information on a given node of the ast
 def propagate_flow(node):
@@ -105,14 +100,14 @@ def propagate_flow(node):
             if propagate_flow(arg):
                 tainted = True
         if tainted:
-            search_sanitizer_sink(func_name)
+            check_if_sanitizer_or_sink(func_name)
         return tainted
     # Flow information through a Name node
     elif node["ast_type"] == "Name":
         if node["id"] not in VARIABLES.keys() and node["ctx"]["ast_type"] == "Load":
             VARIABLES[node["id"]] = True
-            # Uninstantiazes variable - Create possible vulnerability for variable
-            create_source_vulnerability(node["id"])
+            # Uninstantiazed variable - Source for vulnerability
+            add_to_sources(node["id"])
             return True
         else:
             return VARIABLES[node["id"]]
@@ -137,14 +132,13 @@ def main():
     ast = read_program(sys.argv[1])
     # read json object of patterns to identify vulnerabilities
     patterns = read_program(sys.argv[2])
-    # check if in given pattern input there are 2 different patterns for the same vulnerability
+    # instantiates PATTERNS and SOURCES
     process_patterns(patterns)
     # check how information flows in code
     for obj in ast["body"]:
         propagate_flow(obj)
-        print(VARIABLES)
     # print output
-    printJSONOutput()
+    printVulnerabilities()
 
     #print(VARIABLES)
     #print(VULNERABILITIES)
