@@ -6,10 +6,12 @@ from nodes import *
 VARIABLES = {}
 PATTERNS = []
 
+# reads json object from file
 def read_program(program_name):
 	with open(program_name, 'rb') as data_file:
 		return json.loads(data_file.read())
 
+# merge patterns with same vulnerability
 def update_patterns_vuln(vulnerability, i):
 	patterns_types = ['sources', 'sanitizers', 'sinks']
 	for pattern_type in patterns_types:
@@ -17,7 +19,7 @@ def update_patterns_vuln(vulnerability, i):
 			if element not in PATTERNS[i][pattern_type]:
 				PATTERNS[i][pattern_type].append(element)
 
-
+# check if input patterns have duplicate vulnerabilities and merge them
 def check_duplicate_vulnerabilities(patterns):
 	for vulnerability in patterns:
 		present_vuln = ""
@@ -32,6 +34,7 @@ def check_duplicate_vulnerabilities(patterns):
 		else:
 			update_patterns_vuln(vulnerability, i)
 
+# propagates information on a given node of the ast
 def propagate_flow(node):
     # Flow information through an Assign node
     if node["ast_type"] == "Assign":
@@ -56,14 +59,13 @@ def propagate_flow(node):
             return True
         else:
             return VARIABLES[node["id"]]
-    # Flow information through a BinOp node
+    # Flow information through a Binary Operation node
     elif node["ast_type"] == "BinOp":
         tainted = propagate_flow(node["left"]) or propagate_flow(node["right"])
         return tainted
-    # Flwo information through a String node
+    # Flow information through a String node
     elif node["ast_type"] == "Str":
         return False
-
 
 
 
