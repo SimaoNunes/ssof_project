@@ -45,33 +45,52 @@ def get_function_name(func_node):
 
 
 # check if a given function is a sanitizer or a sink
-def check_if_sanitizer_or_sink(function_name, sources):
-    for vuln in PATTERNS:
-        if function_name in vuln['sanitizers']:
-            add_sanitizer_or_sink('sanitizer', vuln['vulnerability'], function_name, sources)
-        elif function_name in vuln['sinks']:
-            add_sanitizer_or_sink('sink', vuln['vulnerability'], function_name, sources)
+#def check_if_sanitizer_or_sink(function_name, sources):
+#    for vuln in PATTERNS:
+#        if function_name in vuln['sanitizers']:
+#            add_sanitizer_or_sink('sanitizer', vuln['vulnerability'], function_name, sources)
+#        elif function_name in vuln['sinks']:
+#            add_sanitizer_or_sink('sink', vuln['vulnerability'], function_name, sources)
 
 # add a sanitizer or sink to a source
-def add_sanitizer_or_sink(element, vulnerability, function_name, sources):
-    for source in sources:
+#def add_sanitizer_or_sink(element, vulnerability, function_name, sources):
+#    for source in sources:
+#        dic = {}
+#        dic['vulnerability'] = vulnerability
+#        dic['source'] = get_source_from(function_name, source)
+#        dic['sink'] = function_name
+#        dic['sanitizer'] = ''
+#    VULNERABILITIES.append(dic)
+
+def check_if_sink(function_name, sources):
+    for vuln in PATTERNS:
+        if function_name in vuln['sinks']:
+            create_vulnerability(vuln['vulnerability'], function_name, sources)
+
+# add a sanitizer or sink to a source
+def create_vulnerability(vulnerability, function_name, sources):
+    sources_list = get_source_from(function_name, sources)
+    for source in sources_list:
         dic = {}
         dic['vulnerability'] = vulnerability
-        dic['source'] = get_source_from(function_name, source)
+        dic['source'] = source
         dic['sink'] = function_name
         dic['sanitizer'] = ''
-    VULNERABILITIES.append(dic)
+        VULNERABILITIES.append(dic)
 
 # return name of tainted source
-def get_source_from(sink, source):
-    name = source[1]
-    if source[0] == 'var' and name == sink:
-        return name
-    elif source[0] == 'func':
-        return name
-    else:
-        for src in VARIABLES[name][1]:
-            return get_source_from(name, src)
+def get_source_from(sink, sources):
+    srcs = []
+    for source in sources:
+        type = source[0]
+        name = source[1]
+        if type == 'var' and name == sink:
+            srcs.append(name)
+        elif type == 'func':
+            srcs.append(name)
+        else:
+            srcs += get_source_from(name, VARIABLES[name][1])
+    return srcs
 
 
 # add uninstatiated variables to all sources list
@@ -115,8 +134,9 @@ def propagate_flow(node):
                     sources.append(src)
                 tainted = (True, sources)
         if tainted[0]:
-            check_if_sanitizer_or_sink(function_name, sources)
-        return tainted
+            check_if_sink(function_name, sources)
+            #check_if_sanitizer_or_sink(function_name, sources)  # (Miguel) acho q isto so precisa de ver se é sink agora. Vemos se passa num sanitizer
+        return tainted                                          # quando tamos a propagar para tras... se virmos q algum é sanitizer adicionamos a uma lista de sanitizers
     # Flow information through a Name node
     elif node['ast_type'] == 'Name':
         if node['id'] not in VARIABLES.keys() and node['ctx']['ast_type'] == 'Load':
