@@ -77,10 +77,17 @@ def create_sanitizer(function_name, sources):
     variable_name = sources[0][1]
     SANITIZERS[variable_name] = function_name
 
+def unique(l):
+    res = []
+    for element in l:
+        if element not in res:
+            res.append(element)
+    return res
+    
 # add a sanitizer or sink to a source
 def create_vulnerability(vulnerability, function_name, sources):
     sources_list, sanitizers_list = get_source_from(function_name, sources)
-    print(sanitizers_list)
+    sanitizers_list = unique(sanitizers_list)
     for source in sources_list:
         dic = {}
         dic['vulnerability'] = vulnerability
@@ -88,7 +95,8 @@ def create_vulnerability(vulnerability, function_name, sources):
         dic['sink'] = function_name
         dic['sanitizer'] = ''
         for sanitizer in sanitizers_list:
-            dic['sanitizer'] += sanitizer
+            dic['sanitizer'] += sanitizer + ', '
+        dic['sanitizer'] = dic['sanitizer'][:-2]
         VULNERABILITIES.append(dic)
 
 # return name of tainted source
