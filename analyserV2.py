@@ -83,7 +83,7 @@ def unique(l):
         if element not in res:
             res.append(element)
     return res
-    
+
 # add a sanitizer or sink to a source
 def create_vulnerability(vulnerability, function_name, sources):
     sources_list, sanitizers_list = get_source_from(function_name, sources)
@@ -135,7 +135,11 @@ def is_function_source(function_name):
 
 # print the expected output. Only sources with sinks have a vulnerability
 def printVulnerabilities():
+    inputFile = sys.argv[1].split(".json")[0]
+    outputFile = inputFile + '.output.json'
+    f = open(outputFile, "w")
     for vulnerability in VULNERABILITIES:
+        f.write(str(vulnerability))
         print(vulnerability)
 
 # propagates information on a given node of the ast
