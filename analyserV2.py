@@ -6,6 +6,7 @@ from nodes import *
 VARIABLES = {}
 VULNERABILITIES = []
 SOURCES = {}
+SANITIZERS = {}
 PATTERNS = []
 
 # reads json object from file
@@ -67,30 +68,47 @@ def check_if_sink(function_name, sources):
         if function_name in vuln['sinks']:
             create_vulnerability(vuln['vulnerability'], function_name, sources)
 
+def check_if_sanitizer(function_name, sources):
+    for vuln in PATTERNS:
+        if function_name in vuln['sanitizers']:
+            create_sanitizer(function_name, sources)
+
+def create_sanitizer(function_name, sources):
+    variable_name = sources[0][1]
+    SANITIZERS[variable_name] = function_name
+
 # add a sanitizer or sink to a source
 def create_vulnerability(vulnerability, function_name, sources):
-    sources_list = get_source_from(function_name, sources)
+    sources_list, sanitizers_list = get_source_from(function_name, sources)
+    print(sanitizers_list)
     for source in sources_list:
         dic = {}
         dic['vulnerability'] = vulnerability
         dic['source'] = source
         dic['sink'] = function_name
         dic['sanitizer'] = ''
+        for sanitizer in sanitizers_list:
+            dic['sanitizer'] += sanitizer
         VULNERABILITIES.append(dic)
 
 # return name of tainted source
 def get_source_from(sink, sources):
+    sanitizers = []
     srcs = []
     for source in sources:
         type = source[0]
         name = source[1]
+        if name in SANITIZERS.keys():
+            sanitizers.insert(0, SANITIZERS[name])
         if type == 'var' and name == sink:
             srcs.append(name)
         elif type == 'func':
             srcs.append(name)
-        else:
-            srcs += get_source_from(name, VARIABLES[name][1])
-    return srcs
+        else:  
+            t = get_source_from(name, VARIABLES[name][1])
+            srcs += t[0]
+            sanitizers += t[1]
+    return srcs, sanitizers
 
 
 # add uninstatiated variables to all sources list
@@ -135,6 +153,7 @@ def propagate_flow(node):
                 tainted = (True, sources)
         if tainted[0]:
             check_if_sink(function_name, sources)
+            check_if_sanitizer(function_name, sources)
             #check_if_sanitizer_or_sink(function_name, sources)  # (Miguel) acho q isto so precisa de ver se é sink agora. Vemos se passa num sanitizer
         return tainted                                          # quando tamos a propagar para tras... se virmos q algum é sanitizer adicionamos a uma lista de sanitizers
     # Flow information through a Name node
