@@ -1,1 +1,0 @@
-a = lol.ahahah.omg(a)
