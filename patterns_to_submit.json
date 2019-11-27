@@ -1,13 +1,106 @@
 [
-  {"vulnerability": "SQL injection",
-  "sources": ["user.objects.get", "get_object_or_404", "QueryDict", "ContactMailForm", "ChatMessageForm", "copy", "get_query_string"],
-  "sanitizers": ["mogrify", "escape_string"],
-  "sinks": ["execute", "raw", "RawSQL"]
+  {
+    "vulnerability": "OS Command Injection",
+    "sources": 
+      [
+        "User.objects.get", 
+        "cms.apps.pages.models.Page.objects.get",
+        "django.core.extensions.get_object_or_404", 
+        "django.http.QueryDict", 
+        "django.shortcuts.get_object_or_404", 
+        "example.util.models.Link.objects.get", 
+        "flask.request.form.get", 
+        "inviteme.forms.ContactMailForm", 
+        "live_support.forms.ChatMessageForm", 
+        "model_class.objects.get", 
+        "req.form.get", 
+        "request.GET.copy", 
+        "request.GET.get", 
+        "request.POST.copy", 
+        "request.POST.get", 
+        "request.args.get", 
+        "request.form.get", 
+        "request.pages.get", 
+        "self.get_query_string", 
+        "self.get_user_or_404", 
+        "self.queryset().get", 
+        "self.request.FILES.get", 
+        "self.request.get", 
+        "self.request.headers.get", 
+        "textpress.models.Page.objects.get", 
+        "textpress.models.Tag.objects.get", 
+        "textpress.models.User", 
+        "textpress.models.User.objects.get"
+      ],
+    "sanitizers":
+      [
+        "subprocess.Popen"
+      ],
+    "sinks": 
+      [
+        "subprocess.call", 
+        "subprocess.check_call", 
+        "subprocess.check_output",
+        "os.system",
+        "os.spawn",
+        "os.popen"
+      ]
   },
-  {"vulnerability":"XSS",
-  "sources":["get", "get_object_or_404", "QueryDict", "ContactMailForm", "ChatMessageForm"],
-  "sanitizers":["clean","escape","flatatt","render_template","render","render_to_response"],
-  "sinks":["send_mail_jinja","mark_safe","Response","Markup","send_mail_jinja","Raw"]
+  {
+    "vulnerability": "XSS",
+    "sources": 
+      [
+        "User.objects.get", 
+        "cms.apps.pages.models.Page.objects.get",
+        "django.core.extensions.get_object_or_404", 
+        "django.http.QueryDict", 
+        "django.shortcuts.get_object_or_404", 
+        "example.util.models.Link.objects.get", 
+        "flask.request.form.get", 
+        "inviteme.forms.ContactMailForm", 
+        "live_support.forms.ChatMessageForm", 
+        "model_class.objects.get", 
+        "req.form.get", 
+        "request.GET.copy", 
+        "request.GET.get", 
+        "request.POST.copy", 
+        "request.POST.get", 
+        "request.args.get", 
+        "request.form.get", 
+        "request.pages.get", 
+        "self.get_query_string", 
+        "self.get_user_or_404", 
+        "self.queryset().get", 
+        "self.request.FILES.get", 
+        "self.request.get", 
+        "self.request.headers.get", 
+        "textpress.models.Page.objects.get", 
+        "textpress.models.Tag.objects.get", 
+        "textpress.models.User", 
+        "textpress.models.User.objects.get"
+      ],
+    "sanitizers":
+      [
+        "bleach.clean",
+        "cgi.escape"
+      ],
+    "sinks": 
+      [
+        "amo.utils.send_mail_jinja", 
+        "django.utils.html.mark_safe", 
+        "django.utils.safestring.mark_safe",
+        "example.util.response.Response",
+        "jinja2.Markup",
+        "olympia.amo.utils.send_mail_jinja",
+        "suds.sax.text.Raw",
+        "swift.common.swob.Response",
+        "webob.Response",
+        "wtforms.widgets.HTMLString",
+        "wtforms.widgets.core.HTMLString",
+        "flask.Response",
+        "flask.make_response",
+        "flask.render_template_string"
+      ]
   }
 ]
 
