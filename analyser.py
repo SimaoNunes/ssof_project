@@ -118,7 +118,6 @@ def get_source_from(sink, sources):
         sources_dic.update(final_sources)
     return sources_dic
 
-
 # add uninstatiated variables to all sources list
 def add_to_sources(variable):
     for vuln in PATTERNS:
@@ -228,7 +227,6 @@ def propagate_flow(node, implicit=''):
     elif node['ast_type'] == 'Expr':
         return propagate_flow(node['value'])
 
-
 # main function
 def main():
     # read json object of an AST of python code
@@ -242,8 +240,6 @@ def main():
         propagate_flow(obj)
     # print output and save in file
     printVulnerabilities()
-
-
 
 if __name__== '__main__':
     main()
