@@ -1,7 +1,5 @@
 import sys
 import json
-import pprint
-from nodes import *
 
 VARIABLES = {}
 VULNERABILITIES = []
@@ -42,7 +40,14 @@ def get_function_name(func_node):
     if 'id' in func_node.keys():
         return func_node['id']
     elif 'attr' in func_node.keys():
-        return func_node['attr']
+        function_name = func_node['attr']
+        while True:
+            if hasattr(func_node, 'value'):
+                func_node = func_node['value'] 
+            else:
+                break
+            function_name = func_node['attr'] + '.' + function_name
+        return function_name
 
 def check_if_sink(function_name, sources):
     for vuln in PATTERNS:
