@@ -93,7 +93,7 @@ def get_source_from(sink, sources):
             srcs.append(name)
         elif type == 'func':
             srcs.append(name)
-        else:  
+        else:
             t = get_source_from(name, VARIABLES[name][1])
             srcs += t[0]
             sanitizers += t[1]
@@ -136,7 +136,6 @@ def propagate_flow(node, implicit=''):
             implicit = tainted_left[1][0][1]
         for obj in node['body']:
             propagate_flow(obj, implicit)
-
     # Flow information through an If node
     if node['ast_type'] == 'If':
         tainted = propagate_flow(node['test'])
@@ -168,8 +167,7 @@ def propagate_flow(node, implicit=''):
         if tainted[0]:
             check_if_sink(function_name, sources)
             check_if_sanitizer(function_name, sources)
-            #check_if_sanitizer_or_sink(function_name, sources)  # (Miguel) acho q isto so precisa de ver se é sink agora. Vemos se passa num sanitizer
-        return tainted                                          # quando tamos a propagar para tras... se virmos q algum é sanitizer adicionamos a uma lista de sanitizers
+        return tainted
     # Flow information through a Name node
     elif node['ast_type'] == 'Name':
         if node['id'] not in VARIABLES.keys() and node['ctx']['ast_type'] == 'Load':
@@ -196,7 +194,7 @@ def propagate_flow(node, implicit=''):
                 list.append(source)
         return (tainted, list)
     # Flow information through a String node
-    elif node['ast_type'] == 'Str': 
+    elif node['ast_type'] == 'Str':
         if implicit == '':
             return (False, [])
         else:
@@ -226,8 +224,6 @@ def main():
     # print output
     printVulnerabilities()
 
-    #print(VARIABLES)
-    #print(VULNERABILITIES)
 
 
 if __name__== '__main__':
