@@ -82,7 +82,22 @@
     "sanitizers":
       [
         "bleach.clean",
-        "cgi.escape"
+        "cgi.escape",
+        "django.forms.util.flatatt",
+        "django.template.defaultfilters.escape",
+        "django.utils.html.escape",
+        "flask.escape",
+        "jinja2.escape",
+        "textpress.utils.escape",
+        "werkzeug.escape",
+        "werkzeug.html.input",
+        " xml.sax.saxutils.escape",
+        "flask.render_template",
+        "django.shortcuts.render",
+        "django.shortcuts.render_to_response",
+        "django.template.Template.render",
+        "django.template.loader.get_template.render",
+        "werkzeug.exceptions.BadRequest"
       ],
     "sinks": 
       [
