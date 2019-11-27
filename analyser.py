@@ -63,6 +63,7 @@ def create_sanitizer(function_name, sources):
     variable_name = sources[0][1]
     SANITIZERS[variable_name] = function_name
 
+# remove duplicate sanitizers
 def unique(l):
     res = []
     for element in l:
@@ -90,6 +91,7 @@ def create_vulnerability(vulnerability, function_name, sources):
 
 # return name of tainted source
 def get_source_from(sink, sources):
+    print(SANITIZERS)
     print(sink, sources)
     sanitizers = []
     srcs = []
