@@ -143,10 +143,31 @@ def printVulnerabilities():
         print(vulnerability)
 
 # propagates information on a given node of the ast
-def propagate_flow(node):
+def propagate_flow(node, implicit=''):
+    # Flow information through an While node
+    if node['ast_type'] == 'While':
+        tainted_left = propagate_flow(node['test']['left'])
+        for obj in node['test']['comparators']:
+            tainted_comparator = propagate_flow(obj)
+        if tainted_left[0]:
+            implicit = tainted_left[1][0][1]
+        elif tainted_comparator[0]:
+            implicit = tainted_left[1][0][1]
+        for obj in node['body']:
+            propagate_flow(obj, implicit)
+
+    # Flow information through an If node
+    if node['ast_type'] == 'If':
+        tainted = propagate_flow(node['test'])
+        if tainted:
+            implicit = node['test']['id']
+        for obj in node['body']:
+            propagate_flow(obj, implicit)
+        for obj in node['orelse']:
+            propagate_flow(obj, implicit)
     # Flow information through an Assign node
     if node['ast_type'] == 'Assign':
-        tainted = propagate_flow(node['value'])
+        tainted = propagate_flow(node['value'], implicit)
         for target in node['targets']:
             VARIABLES[target['id']] = tainted
     # Flow information through a Call node
@@ -176,15 +197,15 @@ def propagate_flow(node):
             add_to_sources(node['id'])
             return VARIABLES[node['id']]
         else:
-            if VARIABLES[node['id']][0]:
+            if VARIABLES[node['id']][0] or implicit:
                 return (True, [('var', node['id'])])
             else:
                 return VARIABLES[node['id']]
     # Flow information through a Binary Operation node
     elif node['ast_type'] == 'BinOp':
         list = []
-        left = propagate_flow(node['left'])
-        right = propagate_flow(node['right'])
+        left = propagate_flow(node['left'], implicit)
+        right = propagate_flow(node['right'], implicit)
         tainted = left[0] or right[0]
         if left[0]:
             for source in left[1]:
@@ -194,11 +215,17 @@ def propagate_flow(node):
                 list.append(source)
         return (tainted, list)
     # Flow information through a String node
-    elif node['ast_type'] == 'Str':
-        return (False, [])
+    elif node['ast_type'] == 'Str': 
+        if implicit == '':
+            return (False, [])
+        else:
+            return (True, [('var', implicit)])
     # Flow information through a Number node
     elif node['ast_type'] == 'Num':
-        return (False, [])
+        if implicit == '':
+            return (False, [])
+        else:
+            return (True, [('var', implicit)])
     # Flow information through a Number node
     elif node['ast_type'] == 'Expr':
         return propagate_flow(node['value'])
