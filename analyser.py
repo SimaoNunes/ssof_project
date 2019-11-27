@@ -40,7 +40,14 @@ def get_function_name(func_node):
     if 'id' in func_node.keys():
         return func_node['id']
     elif 'attr' in func_node.keys():
-        return func_node['attr']
+        function_name = func_node['attr']
+        while True:
+            if hasattr(func_node, 'value'):
+                func_node = func_node['value']
+            else:
+                break
+            function_name = func_node['attr'] + '.' + function_name
+        return function_name
 
 def check_if_sink(function_name, sources):
     for vuln in PATTERNS:
@@ -72,14 +79,18 @@ def create_vulnerability(vulnerability, function_name, sources):
         dic['vulnerability'] = vulnerability
         dic['source'] = source
         dic['sink'] = function_name
-        dic['sanitizer'] = ''
+        dic['sanitizer'] = []
         for sanitizer in sanitizers_list:
-            dic['sanitizer'] += sanitizer + ', '
-        dic['sanitizer'] = dic['sanitizer'][:-2]
+            dic['sanitizer'].append(sanitizer)
+        if len(dic['sanitizer']) == 0:
+            dic['sanitizer'] = ''
+        elif len(dic['sanitizer']) == 1:
+            dic['sanitizer'] = dic['sanitizer'][0]
         VULNERABILITIES.append(dic)
 
 # return name of tainted source
 def get_source_from(sink, sources):
+    print(sink, sources)
     sanitizers = []
     srcs = []
     for source in sources:
