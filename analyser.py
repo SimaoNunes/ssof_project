@@ -1,7 +1,5 @@
 import sys
 import json
-import pprint
-from nodes import *
 
 VARIABLES = {}
 VULNERABILITIES = []

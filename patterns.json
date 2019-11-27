@@ -12,5 +12,10 @@
     {"vulnerability":"XSS",
     "sources":["get", "get_object_or_404", "QueryDict", "ContactMailForm", "ChatMessageForm"],
     "sanitizers":["clean","escape","flatatt","render_template","render","render_to_response"],
-    "sinks":["send_mail_jinja","mark_safe","Response","Markup","send_mail_jinja","Raw"]}
+    "sinks":["send_mail_jinja","mark_safe","Response","Markup","send_mail_jinja","Raw"]},
+
+    {"vulnerability":"Virgindade",
+    "sources":["y","z"],
+    "sanitizers":["a","g"],
+    "sinks":["d","f"]}
   ]
