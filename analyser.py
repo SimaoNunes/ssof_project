@@ -3,172 +3,232 @@ import json
 import pprint
 from nodes import *
 
-NODES = []
-STORED_VARIABLES = []
+VARIABLES = {}
+VULNERABILITIES = []
+SOURCES = {}
+SANITIZERS = {}
 PATTERNS = []
 
-def main():
-	# read json object of an AST of python code
-	data = read_program(sys.argv[1])
-
-	patterns = read_program(sys.argv[2])
-	# visits all AST nodes
-	visit_nodes(data)
-	process_patterns(patterns)
-	process_child_nodes(NODES)
-	# identify and analyse if tainted variables are compromising slice of code
-	#identify_tainted_variables()
-	# print AST
-	for node in NODES:
-		node.print_info()
-	#print(PATTERNS)
-
-
-def update_patterns_vuln(vulnerability, i):
-	patterns_types = ['sources', 'sanitizers', 'sinks']
-	for pattern_type in patterns_types:
-		for element in vulnerability[pattern_type]:
-			if element not in PATTERNS[i][pattern_type]:
-				PATTERNS[i][pattern_type].append(element)
-
-
-def process_patterns(patterns):
-	for vulnerability in patterns:
-		present_vuln = ""
-		index = 0
-		for i, vuln in enumerate(PATTERNS):
-			if vulnerability['vulnerability'] in vuln['vulnerability']:
-				present_vuln = vulnerability['vulnerability']
-				index = i
-				break
-		if present_vuln == "":
-			PATTERNS.append(vulnerability)
-		else:
-			update_patterns_vuln(vulnerability, i)
-
-	
-def process_child_nodes(nodes):
-	for node in nodes:
-		if node.parent != None:
-			node.parent.child.append(node)
-
-
+# reads json object from file
 def read_program(program_name):
-	with open(program_name, 'rb') as data_file:
-		return json.loads(data_file.read())
+    with open(program_name, 'rb') as data_file:
+        return json.loads(data_file.read())
+
+# merge patterns with same vulnerability
+def merge_patterns_vuln(vulnerability, i):
+    patterns_types = ['sources', 'sanitizers', 'sinks']
+    for pattern_type in patterns_types:
+        for element in vulnerability[pattern_type]:
+            if element not in PATTERNS[i][pattern_type]:
+                PATTERNS[i][pattern_type].append(element)
+
+# get input patterns while checking if they have duplicate vulnerabilities and merge them
+def process_patterns(patterns):
+    for vulnerability in patterns:
+        present_vuln = ''
+        for i, vuln in enumerate(PATTERNS):
+            if vulnerability['vulnerability'] in vuln['vulnerability']:
+                present_vuln = vulnerability['vulnerability']
+                break
+        if present_vuln == '':
+            PATTERNS.append(vulnerability)
+        else:
+            merge_patterns_vuln(vulnerability, i)
+    for vulnerability in PATTERNS:
+        SOURCES[vulnerability['vulnerability']] = []
+
+# return the name of a function node depending on its structure
+def get_function_name(func_node):
+    if 'id' in func_node.keys():
+        return func_node['id']
+    elif 'attr' in func_node.keys():
+        return func_node['attr']
+
+def check_if_sink(function_name, sources):
+    for vuln in PATTERNS:
+        if function_name in vuln['sinks']:
+            create_vulnerability(vuln['vulnerability'], function_name, sources)
+
+def check_if_sanitizer(function_name, sources):
+    for vuln in PATTERNS:
+        if function_name in vuln['sanitizers']:
+            create_sanitizer(function_name, sources)
+
+def create_sanitizer(function_name, sources):
+    variable_name = sources[0][1]
+    SANITIZERS[variable_name] = function_name
+
+def unique(l):
+    res = []
+    for element in l:
+        if element not in res:
+            res.append(element)
+    return res
+
+# add a sanitizer or sink to a source
+def create_vulnerability(vulnerability, function_name, sources):
+    sources_list, sanitizers_list = get_source_from(function_name, sources)
+    sanitizers_list = unique(sanitizers_list)
+    for source in sources_list:
+        dic = {}
+        dic['vulnerability'] = vulnerability
+        dic['source'] = source
+        dic['sink'] = function_name
+        dic['sanitizer'] = ''
+        for sanitizer in sanitizers_list:
+            dic['sanitizer'] += sanitizer + ', '
+        dic['sanitizer'] = dic['sanitizer'][:-2]
+        VULNERABILITIES.append(dic)
+
+# return name of tainted source
+def get_source_from(sink, sources):
+    sanitizers = []
+    srcs = []
+    for source in sources:
+        type = source[0]
+        name = source[1]
+        if name in SANITIZERS.keys():
+            sanitizers.insert(0, SANITIZERS[name])
+        if type == 'var' and name == sink:
+            srcs.append(name)
+        elif type == 'func':
+            srcs.append(name)
+        else:  
+            t = get_source_from(name, VARIABLES[name][1])
+            srcs += t[0]
+            sanitizers += t[1]
+    return srcs, sanitizers
 
 
-def visit_nodes(data, parent=None):
+# add uninstatiated variables to all sources list
+def add_to_sources(variable):
+    for vuln in PATTERNS:
+        SOURCES[vuln['vulnerability']].append(variable)         # WARNING! IF VARIABLE HAS FUNCTION NAME THERE'S A BUGGGGG
 
-	data_type = data["ast_type"]
+# verify if a function is a source
+def is_function_source(function_name):
+    is_source = False
+    for vuln in PATTERNS:
+        if function_name in vuln['sources']:
+            is_source = True
+            SOURCES[vuln['vulnerability']].append(function_name)        # WARNING! IF VARIABLE HAS FUNCTION NAME THERE'S A BUGGGGG
+    return is_source
 
-	##### module_node ####
-	if data_type == "Module":
-		node = module_node(None)
-		NODES.append(node)
-		for obj in data["body"]:
-			visit_nodes(obj, node)
+# print the expected output. Only sources with sinks have a vulnerability
+def printVulnerabilities():
+    inputFile = sys.argv[1].split(".json")[0]
+    outputFile = inputFile + '.output.json'
+    f = open(outputFile, "w")
+    for vulnerability in VULNERABILITIES:
+        f.write(str(vulnerability))
+        print(vulnerability)
 
-	##### Literals ####
-	elif data_type == "Num":
-		node = num_node(parent)
-		NODES.append(node)
+# propagates information on a given node of the ast
+def propagate_flow(node, implicit=''):
+    # Flow information through an While node
+    if node['ast_type'] == 'While':
+        tainted_left = propagate_flow(node['test']['left'])
+        for obj in node['test']['comparators']:
+            tainted_comparator = propagate_flow(obj)
+        if tainted_left[0]:
+            implicit = tainted_left[1][0][1]
+        elif tainted_comparator[0]:
+            implicit = tainted_left[1][0][1]
+        for obj in node['body']:
+            propagate_flow(obj, implicit)
 
-	elif data_type == "Str":
-		node = str_node(parent)
-		NODES.append(node)
+    # Flow information through an If node
+    if node['ast_type'] == 'If':
+        tainted = propagate_flow(node['test'])
+        if tainted:
+            implicit = node['test']['id']
+        for obj in node['body']:
+            propagate_flow(obj, implicit)
+        for obj in node['orelse']:
+            propagate_flow(obj, implicit)
+    # Flow information through an Assign node
+    if node['ast_type'] == 'Assign':
+        tainted = propagate_flow(node['value'], implicit)
+        for target in node['targets']:
+            VARIABLES[target['id']] = tainted
+    # Flow information through a Call node
+    elif node['ast_type'] == 'Call':
+        tainted = (False, [])
+        sources = []
+        function_name = get_function_name(node['func'])		# WARNING what about 2 functions with same name? One is function the other is attribute
+        if is_function_source(function_name):
+            sources.append(('func', function_name))
+            tainted = (True, sources)
+        for arg in node['args']:
+            flow = propagate_flow(arg)
+            if flow[0]:
+                for src in flow[1]:
+                    sources.append(src)
+                tainted = (True, sources)
+        if tainted[0]:
+            check_if_sink(function_name, sources)
+            check_if_sanitizer(function_name, sources)
+            #check_if_sanitizer_or_sink(function_name, sources)  # (Miguel) acho q isto so precisa de ver se é sink agora. Vemos se passa num sanitizer
+        return tainted                                          # quando tamos a propagar para tras... se virmos q algum é sanitizer adicionamos a uma lista de sanitizers
+    # Flow information through a Name node
+    elif node['ast_type'] == 'Name':
+        if node['id'] not in VARIABLES.keys() and node['ctx']['ast_type'] == 'Load':
+            VARIABLES[node['id']] = (True, [('var', node['id'])])              # WARNING conflito de nomes de funcoes e variaveis iguais!!!!!!!!!
+            # Uninstantiazed variable - Source for vulnerability
+            add_to_sources(node['id'])
+            return VARIABLES[node['id']]
+        else:
+            if VARIABLES[node['id']][0] or implicit:
+                return (True, [('var', node['id'])])
+            else:
+                return VARIABLES[node['id']]
+    # Flow information through a Binary Operation node
+    elif node['ast_type'] == 'BinOp':
+        list = []
+        left = propagate_flow(node['left'], implicit)
+        right = propagate_flow(node['right'], implicit)
+        tainted = left[0] or right[0]
+        if left[0]:
+            for source in left[1]:
+                list.append(source)
+        if right[0]:
+            for source in right[1]:
+                list.append(source)
+        return (tainted, list)
+    # Flow information through a String node
+    elif node['ast_type'] == 'Str': 
+        if implicit == '':
+            return (False, [])
+        else:
+            return (True, [('var', implicit)])
+    # Flow information through a Number node
+    elif node['ast_type'] == 'Num':
+        if implicit == '':
+            return (False, [])
+        else:
+            return (True, [('var', implicit)])
+    # Flow information through a Number node
+    elif node['ast_type'] == 'Expr':
+        return propagate_flow(node['value'])
 
-	#### Variables ####
-	elif data_type == "Name":
-		node = name_node(data["id"], data["ctx"]["ast_type"], parent)
-		if node.ctx == "Load" and node.id not in STORED_VARIABLES:
-			node.tainted = True
-		elif node.ctx == "Store" and node.id not in STORED_VARIABLES:
-			STORED_VARIABLES.append(node.id)
-		NODES.append(node)
 
-	#### Expressions ####
-	elif data_type == "Expr":
-		node = expr_node(parent)
-		NODES.append(node)
-		visit_nodes(data["value"], node)
+# main function
+def main():
+    # read json object of an AST of python code
+    ast = read_program(sys.argv[1])
+    # read json object of patterns to identify vulnerabilities
+    patterns = read_program(sys.argv[2])
+    # instantiates PATTERNS and SOURCES
+    process_patterns(patterns)
+    # check how information flows in code
+    for obj in ast['body']:
+        propagate_flow(obj)
+    # print output
+    printVulnerabilities()
 
-	elif data_type == "Call":
-		if 'id' in data["func"].keys():
-			node = call_node(data["func"]["id"], parent)	#WARNING there can be 2 funcs with same name but one is obj.attr and the other is not
-		else:
-			node = call_node(data["func"]["attr"], parent)
-			objNode = name_node(data["func"]["value"]["id"], data["func"]["value"]["ctx"]["ast_type"], parent)
-			NODES.append(objNode)
-		
-		possible_source_sink(node) #Check if name of the function is a source or sink in patterns
+    #print(VARIABLES)
+    #print(VULNERABILITIES)
 
-		NODES.append(node)
-		for obj in data["args"]:
-			visit_nodes(obj, node)
 
-	elif data_type == "BinOp":
-		node = binop_node(data["op"]["ast_type"], parent)
-		NODES.append(node)
-		visit_nodes(data["left"], node)
-		visit_nodes(data["right"], node)
-
-	#### Statements ####
-	elif data_type == "Assign":
-		node = assign_node(parent)
-		NODES.append(node)
-		for obj in data["targets"]:
-			visit_nodes(obj, node)
-		visit_nodes(data["value"], node)
-
-	#### Control Flow ####
-
-def possible_source_sink(node):
-	function_name = node.name
-	for vuln in PATTERNS:
-		if function_name in vuln['sources']:
-			node.tainted = true
-
-'''
-def identify_tainted_variables():
-	tainted_variables = []
-	for i, node in enumerate(NODES):
-		if node.type == "Variable":
-			var_name = node.id
-			if node.ctx == "Load":
-				tainted = True
-				tainted_variables.append(node)
-				if i > 0:
-					for j in range(i-1):
-						if NODES[j].type == "Variable" and NODES[j].id == var_name and NODES[j].ctx == "Store":
-							tainted = False
-							tainted_variables.pop()
-							break
-				node.set_tainted(tainted)
-
-	tainted_nodes = tainted_variables.copy()
-	for node in tainted_variables:
-		while node.parent != None:
-			if node.type == "Assign":
-				taint_assign_target(node, tainted_nodes)
-			node.parent.tainted = True
-			tainted_nodes.append(node.parent)
-			node = node.parent
-
-	taint_equal_variables(tainted_nodes)
-
-def taint_assign_target(assign_node, tainted_nodes):
-	for node in NODES:
-		if node.parent == assign_node:
-			node.set_tainted(True)
-			tainted_nodes.append(node)
-
-def taint_equal_variables(tainted_nodes):
-	for node in tainted_nodes:
-		for node2 in NODES:
-			if node2.type == "Variable" and node.type == "Variable" and node2.id == node.id:
-				node2.set_tainted(True)
-'''
-
-if __name__== "__main__":
-	main()
+if __name__== '__main__':
+    main()
