@@ -51,11 +51,13 @@ def get_function_name(func_node):
                 break
         return function_name
 
+# check if a function is sink and then creates a vulnerability
 def check_if_sink(function_name, sources):
     for vuln in PATTERNS:
         if function_name in vuln['sinks']:
             create_vulnerability(vuln['vulnerability'], function_name, sources)
 
+# check if a function is sanitizer and 'sanitizes' all tainted sources that arrived at the function
 def check_if_sanitizer(function_name, sources):
     for vuln in PATTERNS:
         if function_name in vuln['sanitizers']:
@@ -70,18 +72,18 @@ def create_sanitizer(function_name, sources):
             SANITIZERS[variable_name] = function_name
 
 # remove duplicate sanitizers
-def unique(l):
+def remove_duplicate_sanitizers(l):
     res = []
     for element in l:
         if element not in res:
             res.append(element)
     return res
 
-# add a sanitizer or sink to a source
+# creates a vulnerability for a given sink (checks the entire path to get source and lists sanitizing points)
 def create_vulnerability(vulnerability, function_name, sources):
     sources_dic = get_source_from(function_name, sources)
     for source in sources_dic:
-        sources_dic[source] = unique(sources_dic[source])
+        sources_dic[source] = remove_duplicate_sanitizers(sources_dic[source])
         dic = {}
         dic['vulnerability'] = vulnerability
         dic['source'] = source
@@ -120,7 +122,7 @@ def get_source_from(sink, sources):
 # add uninstatiated variables to all sources list
 def add_to_sources(variable):
     for vuln in PATTERNS:
-        SOURCES[vuln['vulnerability']].append(variable)         # WARNING! IF VARIABLE HAS FUNCTION NAME THERE'S A BUGGGGG
+        SOURCES[vuln['vulnerability']].append(variable)
 
 # verify if a function is a source
 def is_function_source(function_name):
@@ -128,14 +130,14 @@ def is_function_source(function_name):
     for vuln in PATTERNS:
         if function_name in vuln['sources']:
             is_source = True
-            SOURCES[vuln['vulnerability']].append(function_name)        # WARNING! IF VARIABLE HAS FUNCTION NAME THERE'S A BUGGGGG
+            SOURCES[vuln['vulnerability']].append(function_name)
     return is_source
 
-# print the expected output. Only sources with sinks have a vulnerability
+# print the output and saves it on a file
 def printVulnerabilities():
-    inputFile = sys.argv[1].split(".json")[0]
+    inputFile = sys.argv[1].split('.json')[0]
     outputFile = inputFile + '.output.json'
-    f = open(outputFile, "w")
+    f = open(outputFile, 'w')
     for vulnerability in VULNERABILITIES:
         f.write(str(vulnerability))
         print(vulnerability)
@@ -171,7 +173,7 @@ def propagate_flow(node, implicit=''):
     elif node['ast_type'] == 'Call':
         tainted = (False, [])
         sources = []
-        function_name = get_function_name(node['func'])		# WARNING what about 2 functions with same name? One is function the other is attribute
+        function_name = get_function_name(node['func'])
         if is_function_source(function_name):
             sources.append(('func', function_name))
             tainted = (True, sources)
@@ -188,7 +190,7 @@ def propagate_flow(node, implicit=''):
     # Flow information through a Name node
     elif node['ast_type'] == 'Name':
         if node['id'] not in VARIABLES.keys() and node['ctx']['ast_type'] == 'Load':
-            VARIABLES[node['id']] = (True, [('var', node['id'])])              # WARNING conflito de nomes de funcoes e variaveis iguais!!!!!!!!!
+            VARIABLES[node['id']] = (True, [('var', node['id'])])
             # Uninstantiazed variable - Source for vulnerability
             add_to_sources(node['id'])
             return VARIABLES[node['id']]
@@ -238,7 +240,7 @@ def main():
     # check how information flows in code
     for obj in ast['body']:
         propagate_flow(obj)
-    # print output
+    # print output and save in file
     printVulnerabilities()
 
 
