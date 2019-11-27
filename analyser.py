@@ -62,8 +62,12 @@ def check_if_sanitizer(function_name, sources):
             create_sanitizer(function_name, sources)
 
 def create_sanitizer(function_name, sources):
-    variable_name = sources[0][1]
-    SANITIZERS[variable_name] = function_name
+    for source in sources:
+        variable_name = source[1]
+        if variable_name in SANITIZERS.keys():
+            SANITIZERS[variable_name].append(function_name)
+        else:
+            SANITIZERS[variable_name] = function_name
 
 # remove duplicate sanitizers
 def unique(l):
@@ -75,15 +79,15 @@ def unique(l):
 
 # add a sanitizer or sink to a source
 def create_vulnerability(vulnerability, function_name, sources):
-    sources_list, sanitizers_list = get_source_from(function_name, sources)
-    sanitizers_list = unique(sanitizers_list)
-    for source in sources_list:
+    sources_dic = get_source_from(function_name, sources)
+    for source in sources_dic:
+        sources_dic[source] = unique(sources_dic[source])
         dic = {}
         dic['vulnerability'] = vulnerability
         dic['source'] = source
         dic['sink'] = function_name
         dic['sanitizer'] = []
-        for sanitizer in sanitizers_list:
+        for sanitizer in sources_dic[source]:
             dic['sanitizer'].append(sanitizer)
         if len(dic['sanitizer']) == 0:
             dic['sanitizer'] = ''
@@ -93,24 +97,24 @@ def create_vulnerability(vulnerability, function_name, sources):
 
 # return name of tainted source
 def get_source_from(sink, sources):
-    print(SANITIZERS)
-    print(sink, sources)
-    sanitizers = []
-    srcs = []
+    sources_dic = {}
     for source in sources:
+        sanitizers = []
+        final_sources = {}
         type = source[0]
         name = source[1]
-        if name in SANITIZERS.keys():
-            sanitizers.insert(0, SANITIZERS[name])
         if type == 'var' and name == sink:
-            srcs.append(name)
+            final_sources = {name:[]}
         elif type == 'func':
-            srcs.append(name)
+            final_sources = {name:[]}
         else:
-            t = get_source_from(name, VARIABLES[name][1])
-            srcs += t[0]
-            sanitizers += t[1]
-    return srcs, sanitizers
+            if name in SANITIZERS.keys():
+                sanitizers += SANITIZERS[name]
+            final_sources = get_source_from(name, VARIABLES[name][1])
+            for source in final_sources:
+                final_sources[source] += sanitizers
+        sources_dic.update(final_sources)
+    return sources_dic
 
 
 # add uninstatiated variables to all sources list
@@ -168,7 +172,6 @@ def propagate_flow(node, implicit=''):
         tainted = (False, [])
         sources = []
         function_name = get_function_name(node['func'])		# WARNING what about 2 functions with same name? One is function the other is attribute
-        print("func:", function_name)
         if is_function_source(function_name):
             sources.append(('func', function_name))
             tainted = (True, sources)
