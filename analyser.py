@@ -41,12 +41,14 @@ def get_function_name(func_node):
         return func_node['id']
     elif 'attr' in func_node.keys():
         function_name = func_node['attr']
+        func_node = func_node['value']
         while True:
-            if hasattr(func_node, 'value'):
-                func_node = func_node['value'] 
+            if 'attr' in func_node.keys():
+                function_name = func_node['attr'] + '.' + function_name
+                func_node = func_node['value']
             else:
-                break
-            function_name = func_node['attr'] + '.' + function_name
+                function_name = func_node['id'] + '.' + function_name
+                break        
         return function_name
 
 def check_if_sink(function_name, sources):
@@ -79,10 +81,13 @@ def create_vulnerability(vulnerability, function_name, sources):
         dic['vulnerability'] = vulnerability
         dic['source'] = source
         dic['sink'] = function_name
-        dic['sanitizer'] = ''
+        dic['sanitizer'] = []
         for sanitizer in sanitizers_list:
-            dic['sanitizer'] += sanitizer + ', '
-        dic['sanitizer'] = dic['sanitizer'][:-2]
+            dic['sanitizer'].append(sanitizer)
+        if len(dic['sanitizer']) == 0:
+            dic['sanitizer'] = ''
+        elif len(dic['sanitizer']) == 1:
+            dic['sanitizer'] = dic['sanitizer'][0]
         VULNERABILITIES.append(dic)
 
 # return name of tainted source
@@ -160,6 +165,7 @@ def propagate_flow(node, implicit=''):
         tainted = (False, [])
         sources = []
         function_name = get_function_name(node['func'])		# WARNING what about 2 functions with same name? One is function the other is attribute
+        print("func:", function_name)
         if is_function_source(function_name):
             sources.append(('func', function_name))
             tainted = (True, sources)
